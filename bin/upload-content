@@ -46,8 +46,7 @@ find.files(argv.dir, function(error, files) {
     var absoluteFile = path.resolve(file);
     var resource = absoluteFile.substr(absolutePath.length + 1);
     console.log(file + " -> " + argv.context + resource + " (" + mime.lookup(file) + ")");
-    var source = fs.createReadStream(file);
-    source.pipe(request({
+    fs.createReadStream(file).pipe(request({
       url: argv.url + argv.context + resource,
       method: "PUT",
       headers: {

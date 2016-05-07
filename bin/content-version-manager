@@ -37,7 +37,7 @@ if (!argv.context.startsWith("/")) {
   argv.context = "/" + argv.context;
 }
 
-var client  = redis.createClient(null, null, {
+var client = redis.createClient(null, null, {
   host: argv["redis-host"],
   port: argv["redis-port"],
   password: argv["redis-password"],
