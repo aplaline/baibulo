@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+
+var redis   = require('redis');
+var express = require('express');
+var app     = express();
+
+var argv = require('minimist')(process.argv, {
+  default: {
+    port: 3001,
+    prefix: 'content:',
+    "redis-host": "localhost",
+    "redis-port": 6379,
+    "redis-user": null,
+    "redis-password": undefined
+  }
+});
+
+if (argv.h || argv.help) {
+  console.log([
+    'usage: content-uploader [options]',
+    '',
+    '  --port port                port to listen for incomming requests [3001]',
+    '  --prefix prefix            prefix for Redis keys [/content]',
+    '  --redis-host host          Redis host [127.0.0.1]',
+    '  --redis-port port          Redis port [6379]',
+    '  --redis-password password  Redis password [null]',
+  ].join("\n"));
+  process.exit(1);
+}
+
+var client  = redis.createClient(null, null, {
+  host: argv["redis-host"],
+  port: argv["redis-port"],
+  password: argv["redis-password"],
+  detect_buffers: true
+});
+
+app.put('*', function(req, res) {
+  var path = req.path;
+
+  var contentType = req.get('Content-Type');
+  if (!contentType) {
+    res.status(400).send('Missing Content-Type header');
+    return;
+  }
+
+  var version = req.get('Version');
+  if (!version) {
+    res.status(400).send('Missing Version header');
+    return;
+  }
+
+  console.log('PUT ' + path + ':' + version + ' (' + contentType + ')');
+
+  var content = '';
+
+  req.on('data', function(chunk) {
+    content += chunk;
+  });
+
+  req.on('end', function() {
+    var setContentType = new Promise(function(resolve) {
+      client.set(argv.prefix + path + ':content-type:' + version, contentType, resolve);
+    });
+
+    var setContent = new Promise(function(resolve) {
+      client.set(argv.prefix + path + ':' + version, content, resolve);
+    });
+
+    Promise.all([ setContentType, setContent ]).then(function(result) {
+      res.status(201).send(path + ':' + version + ' created\n');
+    })
+    .catch(function(error) {
+      console.log(error)
+      res.status(500).send(error);
+    })
+  });
+});
+
+app.listen(argv.port);
+
+console.log("Listening for requests on port " + argv.port + "\n");

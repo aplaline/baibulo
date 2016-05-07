@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+
+var redis   = require('redis');
+var express = require('express');
+var app     = express();
+var url     = require('url');
+
+app.use(require('compression')());
+
+var argv = require('minimist')(process.argv, {
+  default: {
+    port: 3000,
+    prefix: 'content:',
+    "redis-host": "localhost",
+    "redis-port": 6379,
+    "redis-user": null,
+    "redis-password": undefined
+  }
+});
+
+if (argv.h || argv.help) {
+  console.log([
+    'usage: content-server [options]',
+    '',
+    '  --port port                port to listen for incomming requests [3000]',
+    '  --prefix prefix            prefix for Redis keys [/content/]',
+    '  --redis-host host          Redis host [127.0.0.1]',
+    '  --redis-port port          Redis port [6379]',
+    '  --redis-password password  Redis password [null]',
+  ].join("\n"));
+  process.exit(1);
+}
+
+var client = redis.createClient(null, null, {
+  host: argv["redis-host"],
+  port: argv["redis-port"],
+  password: argv["redis-password"],
+  detect_buffers: true
+});
+
+function version(req) {
+  return new Promise((resolve, reject) => {
+    // get specified version in cookie or query parameter
+    var referer = req.header("Referer") ? url.parse(req.header("Referer"), true).query.version : null;
+    var result = referer || (req.query && req.query.version);
+    if (result) {
+      resolve(result);
+    } else {
+      reject();
+    }
+  });
+}
+
+function get(key) {
+  return new Promise((resolve, reject) => {
+    client.get(argv.prefix + key, (err, value) => {
+      if (value) {
+        resolve(value);
+      } else {
+        reject({ error: 404, message: "Not found", redis: argv.prefix + key });
+      }
+    });
+  });
+}
+
+function context(path) {
+  const slash = path.indexOf("/", 1);
+  return path.substr(0, slash == -1 ? undefined : slash);
+}
+
+function extractPath(req) {
+  var path = req.path;
+  var ctx = context(path)
+  return ctx == path || path.endsWith("/") ? ctx + "/index.html" : path;
+}
+
+app.get('*', function(req, res) {
+  var request = { version: 0, contentType: "", content: "" };
+  var path    = extractPath(req);
+
+  version(req)
+    .catch(e => get(context(path) + ":current"))
+    .then(version => { request.version = version })
+    .then(() => get(path + ":content-type:" + request.version))
+    .then(type => { request.contentType = type })
+    .then(() => get(path + ":" + request.version))
+    .then(content => { request.content = content })
+    .then(() => {
+      console.log("GET " + path + ":" + request.version + " 200 (" + request.contentType + ")")
+      res.header("Content-Type", request.contentType);
+      res.status(200).send(request.content);
+    })
+    .catch(e => {
+      console.log("GET " + path + ":" + request.version + " 404 not found " + e.redis);
+      res.status(e.error).send(e.message);
+    })
+});
+
+app.listen(argv.port);
+
+console.log("Listening for requests on port " + argv.port + "\n");

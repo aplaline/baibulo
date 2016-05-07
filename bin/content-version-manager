@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+
+var redis = require('redis');
+
+var argv = require('minimist')(process.argv, {
+  default: {
+    context: undefined,
+    version: "next",
+    prefix: 'content:',
+    "redis-host": "localhost",
+    "redis-port": 6379,
+    "redis-user": null,
+    "redis-password": undefined
+  }
+});
+
+if (argv.h || argv.help || !argv.context) {
+  console.log([
+    'usage: version [options]',
+    '',
+    '  --context context          Context (required!)',
+    '  --version                  Version [next]',
+    '  --prefix prefix            prefix for Redis keys [/content]',
+    '  --redis-host host          Redis host [127.0.0.1]',
+    '  --redis-port port          Redis port [6379]',
+    '  --redis-password password  Redis password [null]'
+  ].join("\n"));
+  process.exit(1);
+}
+
+if (!argv.context) {
+  console.log("No context specified");
+  process.exit(1);
+}
+
+if (!argv.context.startsWith("/")) {
+  argv.context = "/" + argv.context;
+}
+
+var client  = redis.createClient(null, null, {
+  host: argv["redis-host"],
+  port: argv["redis-port"],
+  password: argv["redis-password"],
+  detect_buffers: true
+});
+
+client.set(argv.prefix + argv.context + ':current', argv.version, function(err) {
+  var exitCode = 0;
+  if (err) {
+    exitCode = 2;
+    console.error("ERROR: " + err);
+  } else {
+    console.log("OK New default version for context '" + argv.context + "': " + argv.version);
+  }
+  client.quit();
+  process.exit(exitCode);
+});
