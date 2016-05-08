@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 var redis   = require('redis');
+var streams = require('redis-streams');
 var express = require('express');
 var app     = express();
 var url     = require('url');
 
+// Enable streaming API on Redis
+streams(redis);
+
+// Enable compression on responses
 app.use(require('compression')());
 
+// Parse arguments
 var argv = require('minimist')(process.argv, {
   default: {
     port: 3000,
@@ -18,6 +24,7 @@ var argv = require('minimist')(process.argv, {
   }
 });
 
+// Show help if requested
 if (argv.h || argv.help) {
   console.log([
     'usage: content-server [options]',
@@ -31,6 +38,7 @@ if (argv.h || argv.help) {
   process.exit(1);
 }
 
+// Create Redis client
 var client = redis.createClient(null, null, {
   host: argv["redis-host"],
   port: argv["redis-port"],
@@ -38,7 +46,8 @@ var client = redis.createClient(null, null, {
   detect_buffers: true
 });
 
-function version(req) {
+// Extract version specified in request
+function extractRequestVersion(req) {
   return new Promise(function(resolve, reject) {
     // extract version number from Referer header
     var referer = req.header("Referer") ? url.parse(req.header("Referer"), true).query.version : null;
@@ -52,6 +61,7 @@ function version(req) {
   });
 }
 
+// Get value from Redis
 function get(key) {
   return new Promise(function(resolve, reject){
     client.get(argv.prefix + key, function(err, value) {
@@ -64,44 +74,45 @@ function get(key) {
   });
 }
 
-function context(path) {
+// Extract context path
+function extractContext(path) {
   var slash = path.indexOf("/", 1);
   return path.substr(0, slash == -1 ? undefined : slash);
 }
 
+// Extract path within the expected context
 function extractPath(req) {
   var path = req.path;
-  var ctx = context(path)
+  var ctx = extractContext(path)
   return ctx == path || path.endsWith("/") ? ctx + "/index.html" : path;
 }
 
 app.get('*', function(req, res) {
-  var request = { version: 0, contentType: "", content: "" };
+  var request = { version: 0, contentType: "" };
   var path    = extractPath(req);
 
-  version(req)
+  extractRequestVersion(req)
     .catch(function(error) {
-      return get(context(path) + ":current");
+      return get(extractContext(path) + ":current");
     })
     .then(function(version) {
-      request.version = version
+      request.version = version;
     })
     .then(function() {
-      return get(path + ":content-type:" + request.version)
+      return get(path + ":content-type:" + request.version);
     })
-    .then(function(type) {
-      request.contentType = type;
+    .then(function(contentType) {
+      request.contentType = contentType
+      res.writeHead(200, { "Content-Type": request.contentType });
     })
+    .then(function() { return new Promise(function(resolve, reject) {
+      client.readStream(argv.prefix + path + ":" + request.version)
+        .pipe(res)
+        .on('finish', resolve)
+        .on('error', reject);
+    })})
     .then(function() {
-      return get(path + ":" + request.version);
-    })
-    .then(function(content) {
-      request.content = content;
-    })
-    .then(function() {
-      console.log("GET " + path + ":" + request.version + " 200 (" + request.contentType + ")")
-      res.header("Content-Type", request.contentType);
-      res.status(200).send(request.content);
+      console.log("GET " + path + ":" + request.version + " 200 (" + request.contentType + ")");
     })
     .catch(function(error) {
       console.log("GET " + path + ":" + request.version + " 404 not found " + error.redis);

@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 
-var redis   = require('redis');
+var redis   = require('redis'); 
+var streams = require('redis-streams');
 var express = require('express');
 var app     = express();
 
+// Enable streaming API on Redis
+streams(redis);
+
+// Parse arguments
 var argv = require('minimist')(process.argv, {
   default: {
     port: 3001,
@@ -15,6 +20,7 @@ var argv = require('minimist')(process.argv, {
   }
 });
 
+// Show help if requested
 if (argv.h || argv.help) {
   console.log([
     'usage: content-uploader [options]',
@@ -28,6 +34,7 @@ if (argv.h || argv.help) {
   process.exit(1);
 }
 
+// Create Redis client
 var client  = redis.createClient(null, null, {
   host: argv["redis-host"],
   port: argv["redis-port"],
@@ -52,29 +59,21 @@ app.put('*', function(req, res) {
 
   console.log('PUT ' + path + ':' + version + ' (' + contentType + ')');
 
-  var content = '';
-
-  req.on('data', function(chunk) {
-    content += chunk;
+  var setContentType = new Promise(function(resolve) {
+    client.set(argv.prefix + path + ':content-type:' + version, contentType, resolve);
   });
 
-  req.on('end', function() {
-    var setContentType = new Promise(function(resolve) {
-      client.set(argv.prefix + path + ':content-type:' + version, contentType, resolve);
-    });
-
-    var setContent = new Promise(function(resolve) {
-      client.set(argv.prefix + path + ':' + version, content, resolve);
-    });
-
-    Promise.all([ setContentType, setContent ]).then(function(result) {
-      res.status(201).send(path + ':' + version + ' created\n');
-    })
-    .catch(function(error) {
-      console.log(error)
-      res.status(500).send(error);
-    })
+  var setContent = new Promise(function(resolve, reject) {
+    req.pipe(client.writeStream(argv.prefix + path + ':' + version, 9999)).on('finish', resolve).on('error', reject);
   });
+
+  Promise.all([ setContentType, setContent ]).then(function(result) {
+    res.status(201).send(path + ':' + version + ' created\n');
+  })
+  .catch(function(error) {
+    console.log(error)
+    res.status(500).send(error);
+  })
 });
 
 app.listen(argv.port);

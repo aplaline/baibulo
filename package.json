@@ -11,6 +11,7 @@
     "minimist": "^1.2.0",
     "node-dir": "^0.1.12",
     "redis": "^2.6.0-0",
+    "redis-streams": "^1.0.6",
     "request": "^2.72.0"
   },
   "bin": {
