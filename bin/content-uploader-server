@@ -65,7 +65,7 @@ app.put('*', function(req, res) {
 
   var setContent = new Promise(function(resolve, reject) {
     req
-      .pipe(client.writeStream(argv.prefix + path + ':' + version, 9999))
+      .pipe(client.writeStream(argv.prefix + path + ':' + version, 2147483647))
       .on('finish', resolve)
       .on('error', reject);
   });
