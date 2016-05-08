@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 
 var redis   = require('redis');
-var streams = require('redis-streams');
 var express = require('express');
 var app     = express();
 var url     = require('url');
 
 // Enable streaming API on Redis
-streams(redis);
+require('redis-streams')(redis);
 
 // Enable compression on responses
 app.use(require('compression')());

@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 var redis   = require('redis'); 
-var streams = require('redis-streams');
 var express = require('express');
 var app     = express();
 
 // Enable streaming API on Redis
-streams(redis);
+require('redis-streams')(redis);
 
 // Parse arguments
 var argv = require('minimist')(process.argv, {
