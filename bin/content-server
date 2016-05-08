@@ -141,7 +141,7 @@ app.get('*', function(req, res) {
       console.log("GET " + path + ":" + request.version + " " + request.code + " (" + request.contentType + ")");
     })
     .catch(function(error) {
-      console.log("GET " + path + ":" + request.version + " 404 not found " + error.redis);
+      console.log("GET " + path + ":" + request.version + " 404 not found " + (error.redis || ""));
       res.status(error.code).send(error.message);
     })
 });
