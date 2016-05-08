@@ -64,10 +64,17 @@ app.put('*', function(req, res) {
   });
 
   var setContent = new Promise(function(resolve, reject) {
-    req.pipe(client.writeStream(argv.prefix + path + ':' + version, 9999)).on('finish', resolve).on('error', reject);
+    req
+      .pipe(client.writeStream(argv.prefix + path + ':' + version, 9999))
+      .on('finish', resolve)
+      .on('error', reject);
   });
 
-  Promise.all([ setContentType, setContent ]).then(function(result) {
+  var setETag = new Promise(function(resolve, reject) {
+    client.set(argv.prefix + path + ':etag:' + version, Date.now(), resolve);
+  });
+
+  Promise.all([ setContentType, setContent, setETag ]).then(function(result) {
     res.status(201).send(path + ':' + version + ' created\n');
   })
   .catch(function(error) {

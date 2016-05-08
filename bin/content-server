@@ -88,31 +88,52 @@ function extractPath(req) {
 }
 
 app.get('*', function(req, res) {
-  var request = { version: 0, contentType: "" };
+  var request = { version: 0, contentType: "", etag: 0, code: 200 };
   var path    = extractPath(req);
 
   extractRequestVersion(req)
     .catch(function(error) {
+      // retrieve default version for context
       return get(extractContext(path) + ":current");
     })
     .then(function(version) {
+      // store version information
       request.version = version;
     })
     .then(function() {
+      // retrieve e-tag for the resource
+      return get(path + ":etag:" + request.version);
+    })
+    .then(function(etag) {
+      // store e-tag information
+      request.etag = etag;
+    })
+    .then(function() {
+      // retrieve content type for resource
       return get(path + ":content-type:" + request.version);
     })
     .then(function(contentType) {
-      request.contentType = contentType
-      res.writeHead(200, { "Content-Type": request.contentType });
+      // store content type information
+      request.contentType = contentType;
     })
-    .then(function() { return new Promise(function(resolve, reject) {
-      client.readStream(argv.prefix + path + ":" + request.version)
-        .pipe(res)
-        .on('finish', resolve)
-        .on('error', reject);
-    })})
     .then(function() {
-      console.log("GET " + path + ":" + request.version + " 200 (" + request.contentType + ")");
+      // send response
+      if (req.headers["if-none-match"] == request.etag) {
+        request.code = 304;
+        res.writeHead(304, { "Content-Type": request.contentType, "ETag": request.etag });
+        res.end();
+      } else {
+        res.writeHead(200, { "Content-Type": request.contentType, "ETag": request.etag });
+        return new Promise(function(resolve, reject) {
+          client.readStream(argv.prefix + path + ":" + request.version)
+            .pipe(res)
+            .on('finish', resolve)
+            .on('error', reject);
+          });
+      }
+    })
+    .then(function() {
+      console.log("GET " + path + ":" + request.version + " " + request.code + " (" + request.contentType + ")");
     })
     .catch(function(error) {
       console.log("GET " + path + ":" + request.version + " 404 not found " + error.redis);
