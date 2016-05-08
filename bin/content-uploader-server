@@ -15,7 +15,8 @@ var argv = require('minimist')(process.argv, {
     "redis-host": "localhost",
     "redis-port": 6379,
     "redis-user": null,
-    "redis-password": undefined
+    "redis-password": undefined,
+    "content-url": "http://localhost:3000"
   }
 });
 
@@ -29,6 +30,8 @@ if (argv.h || argv.help) {
     '  --redis-host host          Redis host [127.0.0.1]',
     '  --redis-port port          Redis port [6379]',
     '  --redis-password password  Redis password [null]',
+    '  --content-url url          Base URL of the content [http://localhost:3000]',
+    '                             It is used to make links the list of content versions'
   ].join("\n"));
   process.exit(1);
 }
@@ -80,6 +83,45 @@ app.put('*', function(req, res) {
     console.log(error)
     res.status(500).send(error);
   })
+});
+
+app.get("/:context", function(req, res) {
+  var getAllVersions = new Promise(function(resolve, reject) {
+    client.keys(argv.prefix + "/" + req.params.context + "/index.html:content-type:*", function(err, keys) {
+      if (keys) {
+        for (var i = 0; i < keys.length; i++) {
+          keys[i] = keys[i].substr(keys[i].lastIndexOf(":") + 1);
+        }
+        keys.sort();
+        keys.reverse();
+        resolve(keys);
+      } else {
+        reject({ code: 500, message: err });
+      }
+    });
+  });
+
+  var getCurrentVersion = new Promise(function(resolve, reject) {
+    client.get(argv.prefix + "/" + req.params.context + ":current", function(err, current) {
+      resolve(current);
+    });
+  });
+
+  Promise.all([ getAllVersions, getCurrentVersion ])
+    .then(function(data) {
+      var versions = data[0];
+      var current  = data[1];
+      var response = "";
+      response = "<!doctype html><html><body><h1>Versions for context /" + req.params.context + "</h1><ul>";
+      for (var i = 0; i < versions.length; i++) {
+        response += "<li><a href='" + argv["content-url"] + "/" + req.params.context + "?version=" + versions[i] + "'>" + versions[i] + "</a>" + (versions[i] == current ? " (current)" : "") + "</li>";
+      }
+      response += "</ul></body></html>";
+      res.end(response);
+    })
+    .catch(function(e) {
+      res.status(e.code).send(e.message);
+    });
 });
 
 app.listen(argv.port);
