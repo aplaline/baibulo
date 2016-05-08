@@ -87,6 +87,16 @@ function extractPath(req) {
   return ctx == path || path.endsWith("/") ? ctx + "/index.html" : path;
 }
 
+// Stream body from Redis to response
+function streamBody(res, key) {
+  return new Promise(function(resolve, reject) {
+    client.readStream(key)
+      .pipe(res)
+      .on('finish', resolve)
+      .on('error', reject);
+  });
+}
+
 app.get('*', function(req, res) {
   var request = { version: 0, contentType: "", etag: 0, code: 200 };
   var path    = extractPath(req);
@@ -124,12 +134,7 @@ app.get('*', function(req, res) {
         res.end();
       } else {
         res.writeHead(200, { "Content-Type": request.contentType, "ETag": request.etag });
-        return new Promise(function(resolve, reject) {
-          client.readStream(argv.prefix + path + ":" + request.version)
-            .pipe(res)
-            .on('finish', resolve)
-            .on('error', reject);
-          });
+        return streamBody(res, argv.prefix + path + ":" + request.version);
       }
     })
     .then(function() {
