@@ -4,8 +4,8 @@
   "description": "Server for serving versioned static content",
   "author": "Matthias Hryniszak",
   "license": "Apache-2.0",
+  "main": "index.js",
   "dependencies": {
-    "compression": "^1.6.1",
     "express": "^4.13.4",
     "http-proxy": "^1.13.2",
     "mime": "^1.3.4",
@@ -15,10 +15,11 @@
     "redis-streams": "^1.0.6",
     "request": "^2.72.0"
   },
+  "devDependencies": {
+    "compression": "^1.6.1"
+  },
   "bin": {
-    "content-uploader-server": "./bin/content-uploader-server",
-    "content-server": "./bin/content-server",
-    "upload-content": "./bin/upload-content",
+    "content-uploader": "./bin/content-uploader",
     "content-version-manager": "./bin/content-version-manager"
   }
 }

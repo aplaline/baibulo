@@ -17,7 +17,7 @@ if (argv.h || argv.help || !argv.context) {
     '',
     '  --context context  Context (required!)',
     '  --version          Version [next]',
-    '  --prefix prefix    Prefix for Redis keys [/content]',
+    '  --prefix prefix    Prefix for Redis keys [content:]',
     '  --redis            Redis server URL [redis://localhost:6379]'
   ].join("\n"));
   process.exit(1);

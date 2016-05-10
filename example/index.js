@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-var server   = require('../lib/versioned-content-server');
-var uploader = require('../lib/versioned-content-uploader');
-var launcher = require('../lib/versioned-content-launcher');
+var vcs = require("../")({ root: "http://localhost:3000" });
 var express  = require('express');
 var app1     = express();
 var app2     = express();
@@ -11,9 +9,9 @@ var app2     = express();
 app1.use(require('compression')());
 
 // Enable file server and file uploader
-app1.use("/hello", server.init());
-app2.use("/hello", uploader.init());
-app2.use("/hello", launcher.init({ root: "http://localhost:3000" }));
+app1.use("/hello", vcs.server);
+app2.use("/hello", vcs.uploader);
+app2.use("/hello", vcs.launcher);
 
 // Example backend implementation
 app1.get("/api/data", function(req, res) {
