@@ -3,29 +3,8 @@
 var server   = require('../lib/versioned-content-server');
 var uploader = require('../lib/versioned-content-uploader');
 var launcher = require('../lib/versioned-content-launcher');
-var express = require('express');
-var app     = express();
-
-// Parse arguments
-var argv = require('minimist')(process.argv, {
-  default: {
-    port: 3000,
-    prefix: 'content:',
-    redis: "redis://localhost:6379"
-  }
-});
-
-// Show help if requested
-if (argv.h || argv.help) {
-  console.log([
-    'usage: content-server [options]',
-    '',
-    '  --port port       port to listen for incomming requests [3000]',
-    '  --prefix prefix   prefix for Redis keys [/content/]',
-    '  --redis url       Redis password [redis://localhost:6379]',
-  ].join("\n"));
-  process.exit(1);
-}
+var express  = require('express');
+var app      = express();
 
 // Enable compression on responses
 app.use(require('compression')());
@@ -35,7 +14,12 @@ app.use("/hello", launcher.init());
 app.use("/hello", server.init());
 app.use("/hello", uploader.init());
 
-// Start the server
-app.listen(argv.port);
+// Example backend implementation
+app.get("/api/data", function(req, res) {
+  res.json({ message: "Hello, world!" });
+});
 
-console.log("Listening for requests on port " + argv.port + "\n");
+// Start the server
+app.listen(3000);
+
+console.log("Listening for requests on port 3000\n");
