@@ -9,7 +9,7 @@ var fs = require("fs");
 var argv = require('minimist')(process.argv, {
   default: {
     dir: "./",
-    url: "http://localhost:3001",
+    url: "http://localhost:3000",
     version: "next"
   }
 });
@@ -32,7 +32,7 @@ if (argv.h || argv.help || !argv.context) {
   console.log([
     'usage: upload [options]',
     '',
-    '  --url content-server-url   Content uploader root URI [http://localhost:3001]',
+    '  --url content-server-url   Content uploader root URI [http://localhost:3000]',
     '  --dir dir                  Directory with content to upload [./]',
     '  --context context          Context name (defaults to folder name)',
     '  --version version          Content version [next]',

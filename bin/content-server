@@ -1,25 +1,17 @@
 #!/usr/bin/env node
 
-var redis   = require('redis');
+var server   = require('../lib/versioned-content-server');
+var uploader = require('../lib/versioned-content-uploader');
+var launcher = require('../lib/versioned-content-launcher');
 var express = require('express');
 var app     = express();
-var url     = require('url');
-
-// Enable streaming API on Redis
-require('redis-streams')(redis);
-
-// Enable compression on responses
-app.use(require('compression')());
 
 // Parse arguments
 var argv = require('minimist')(process.argv, {
   default: {
     port: 3000,
     prefix: 'content:',
-    "redis-host": "localhost",
-    "redis-port": 6379,
-    "redis-user": null,
-    "redis-password": undefined
+    redis: "redis://localhost:6379"
   }
 });
 
@@ -28,123 +20,22 @@ if (argv.h || argv.help) {
   console.log([
     'usage: content-server [options]',
     '',
-    '  --port port                port to listen for incomming requests [3000]',
-    '  --prefix prefix            prefix for Redis keys [/content/]',
-    '  --redis-host host          Redis host [127.0.0.1]',
-    '  --redis-port port          Redis port [6379]',
-    '  --redis-password password  Redis password [null]',
+    '  --port port       port to listen for incomming requests [3000]',
+    '  --prefix prefix   prefix for Redis keys [/content/]',
+    '  --redis url       Redis password [redis://localhost:6379]',
   ].join("\n"));
   process.exit(1);
 }
 
-// Create Redis client
-var client = redis.createClient(null, null, {
-  host: argv["redis-host"],
-  port: argv["redis-port"],
-  password: argv["redis-password"],
-  detect_buffers: true
-});
+// Enable compression on responses
+app.use(require('compression')());
 
-// Extract version specified in request
-function extractRequestVersion(req) {
-  return new Promise(function(resolve, reject) {
-    // extract version number from Referer header
-    var referer = req.header("Referer") ? url.parse(req.header("Referer"), true).query.version : null;
-    // get specified version in Referer header or query parameter
-    var result = referer || (req.query && req.query.version);
-    if (result) {
-      resolve(result);
-    } else {
-      reject();
-    }
-  });
-}
+// Enable file server and file uploader
+app.use("/hello", launcher.init());
+app.use("/hello", server.init());
+app.use("/hello", uploader.init());
 
-// Get value from Redis
-function get(key) {
-  return new Promise(function(resolve, reject){
-    client.get(argv.prefix + key, function(err, value) {
-      if (value) {
-        resolve(value);
-      } else {
-        reject({ code: 404, message: "Not found", redis: argv.prefix + key });
-      }
-    });
-  });
-}
-
-// Extract context path
-function extractContext(path) {
-  var slash = path.indexOf("/", 1);
-  return path.substr(0, slash == -1 ? undefined : slash);
-}
-
-// Extract path within the expected context
-function extractPath(req) {
-  var path = req.path;
-  var ctx = extractContext(path)
-  return ctx == path || path.endsWith("/") ? ctx + "/index.html" : path;
-}
-
-// Stream body from Redis to response
-function streamBody(res, key) {
-  return new Promise(function(resolve, reject) {
-    client.readStream(key)
-      .pipe(res)
-      .on('finish', resolve)
-      .on('error', reject);
-  });
-}
-
-app.get('*', function(req, res) {
-  var request = { version: 0, contentType: "", etag: 0, code: 200 };
-  var path    = extractPath(req);
-
-  extractRequestVersion(req)
-    .catch(function(error) {
-      // retrieve default version for context
-      return get(extractContext(path) + ":current");
-    })
-    .then(function(version) {
-      // store version information
-      request.version = version;
-    })
-    .then(function() {
-      // retrieve e-tag for the resource
-      return get(path + ":etag:" + request.version);
-    })
-    .then(function(etag) {
-      // store e-tag information
-      request.etag = etag;
-    })
-    .then(function() {
-      // retrieve content type for resource
-      return get(path + ":content-type:" + request.version);
-    })
-    .then(function(contentType) {
-      // store content type information
-      request.contentType = contentType;
-    })
-    .then(function() {
-      // send response
-      if (req.headers["if-none-match"] == request.etag) {
-        request.code = 304;
-        res.writeHead(304, { "Content-Type": request.contentType, "ETag": request.etag });
-        res.end();
-      } else {
-        res.writeHead(200, { "Content-Type": request.contentType, "ETag": request.etag });
-        return streamBody(res, argv.prefix + path + ":" + request.version);
-      }
-    })
-    .then(function() {
-      console.log("GET " + path + ":" + request.version + " " + request.code + " (" + request.contentType + ")");
-    })
-    .catch(function(error) {
-      console.log("GET " + path + ":" + request.version + " 404 not found " + (error.redis || ""));
-      res.status(error.code).send(error.message);
-    })
-});
-
+// Start the server
 app.listen(argv.port);
 
 console.log("Listening for requests on port " + argv.port + "\n");
