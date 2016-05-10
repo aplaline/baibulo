@@ -4,22 +4,24 @@ var server   = require('../lib/versioned-content-server');
 var uploader = require('../lib/versioned-content-uploader');
 var launcher = require('../lib/versioned-content-launcher');
 var express  = require('express');
-var app      = express();
+var app1     = express();
+var app2     = express();
 
 // Enable compression on responses
-app.use(require('compression')());
+app1.use(require('compression')());
 
 // Enable file server and file uploader
-app.use("/hello", launcher.init());
-app.use("/hello", server.init());
-app.use("/hello", uploader.init());
+app1.use("/hello", server.init());
+app2.use("/hello", uploader.init());
+app2.use("/hello", launcher.init({ root: "http://localhost:3000" }));
 
 // Example backend implementation
-app.get("/api/data", function(req, res) {
+app1.get("/api/data", function(req, res) {
   res.json({ message: "Hello, world!" });
 });
 
 // Start the server
-app.listen(3000);
+app1.listen(3000);
+app2.listen(3001);
 
-console.log("Listening for requests on port 3000\n");
+console.log("Listening for requests on ports 3000, 3001\n");

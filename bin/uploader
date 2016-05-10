@@ -9,7 +9,7 @@ var fs = require("fs");
 var argv = require('minimist')(process.argv, {
   default: {
     dir: "./",
-    url: "http://localhost:3000",
+    url: "http://localhost:3001",
     version: "next"
   }
 });
