@@ -1,8 +1,10 @@
 #!/bin/bash
 
 if [ "$1" == "" ]; then
-  echo "No version specified"
-  exit;
+  echo "No version specified - using 'next'"
+  VERSION=next
+else
+  VERSION=$1
 fi
 
-../bin/content-version-manager --context hello --version $1
+../bin/baibulo-version-manager set --context hello --version $VERSION

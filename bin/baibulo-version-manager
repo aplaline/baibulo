@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+
+var path = require("path");
+var redis = require('../lib/redis-client');
+
+// read command-line parameters
+var argv = require('minimist')(process.argv, {
+  default: {
+    context: undefined,
+    version: undefined,
+    prefix: "content:",
+    redis: process.env["REDIS_URL"] || "redis://localhost:6379"
+  }
+});
+
+// show help and exit
+if (argv.h || argv.help || argv._.length < 3) {
+  console.log([
+    'usage: content-version-manager get|set [options]',
+    '',
+    '  --context context  Context name (defaults to folder name)',
+    '  --version          Version (required if set)',
+    '  --prefix prefix    Prefix for Redis keys [content:]',
+    '  --redis            Redis server URL [redis://localhost:6379]'
+  ].join("\n"));
+  process.exit(1);
+}
+
+// validate and process context
+if (!argv.context) {
+  var absolute = path.resolve(".");
+  var last = path.dirname(absolute);
+  argv.context = "/" + path.relative(last, absolute);
+}
+if (!argv.context.startsWith("/")) {
+  argv.context = "/" + argv.context;
+}
+
+var operations = {
+  "set": function() {
+    if (!argv.version) {
+      return Promise.reject({ code: 500, message: "No version specified" });
+    } else {
+      return redis.set(argv.prefix + argv.context + ':current', argv.version)
+        .then(function() {
+          console.log("OK New default version for context '" + argv.context + "': " + argv.version);
+        })
+   }
+  },
+  "get": function() {
+    return redis.get(argv.prefix + argv.context + ':current', argv.version)
+      .then(function(version) {
+        console.log(version);
+      })
+  }
+}
+
+// get the operation user requested (default: get)
+var operation = operations[argv._[2]];
+if (!operation) {
+  console.log("Invalid operation specified");
+  process.exit(2);
+}
+
+// initialize redis
+redis.init(argv.redis);
+
+// execute operation
+operation()
+  .catch(function(error) {
+    console.log("ERROR: " + (typeof error === "string" ? error : JSON.stringify(error)));
+    redis.client().quit();
+    process.exit(3);
+  })
+  .then(function() {
+    redis.client().quit();
+  });

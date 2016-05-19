@@ -1,8 +1,11 @@
 #!/bin/bash
 
 if [ "$1" == "" ]; then
-  echo "No version specified"
-  exit;
+  echo "No version specified - using 'next'"
+  VERSION=next
+else
+  VERSION=$1
 fi
 
-../bin/content-uploader --version $1 --dir hello
+cd hello
+../../bin/baibulo-deploy --version $VERSION

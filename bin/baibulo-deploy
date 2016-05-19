@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+
+var find = require("node-dir");
+var path = require("path");
+var redis = require('../lib/redis-client');
+var deployFiles = require('../lib/versioned-content-deployer')
+
+// read command-line parameters
+var argv = require('minimist')(process.argv, {
+  default: {
+    dir: "./",
+    context: undefined,
+    version: "next",
+    prefix: "content:",
+    redis: process.env["REDIS_URL"] || "redis://localhost:6379"
+  }
+});
+
+// show help and exit
+if (argv.h || argv.help) {
+  console.log([
+    'usage: deploy-content [options]',
+    '',
+    '  --dir dir          Directory with content to upload [./]',
+    '  --context context  Context name (defaults to folder name)',
+    '  --version          Version [next]',
+    '  --prefix prefix    Prefix for Redis keys [content:]',
+    '  --redis            Redis server URL [redis://localhost:6379]'
+  ].join("\n"));
+  process.exit(1);
+}
+
+// validate and process context
+if (!argv.context) {
+  var absolute = path.resolve(argv.dir);
+  var last = path.dirname(absolute);
+  argv.context = "/" + path.relative(last, absolute);
+}
+if (!argv.context.endsWith("/")) {
+  argv.context += "/";
+}
+if (!argv.context.startsWith("/")) {
+  argv.context = "/" + argv.context;
+}
+
+// dump progress to console
+function log(file, resource, version, contentType, result) {
+  console.log("OK " + file + " -> " + resource + ":" + version + " (" + contentType + ") " + result.join(" "));
+}
+
+// read list of files and upload them to redis
+find.files(argv.dir, function(error, files) {
+  // initialize redis
+  redis.init(argv.redis);
+
+  var absolutePath = path.resolve(argv.dir);
+  deployFiles(redis, absolutePath, argv.prefix, argv.context, argv.version, files, log)
+    .catch(function(error) {
+      console.log(error);
+    })
+    .then(function() {
+      redis.client().end(true);
+    });
+});

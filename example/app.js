@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var vcs = require("../")({ root: "http://localhost:3000" });
+var baibulo  = require("../")({ root: "http://localhost:3000" });
 var express  = require('express');
 var app1     = express();
 var app2     = express();
@@ -9,9 +9,8 @@ var app2     = express();
 app1.use(require('compression')());
 
 // Enable file server and file uploader
-app1.use("/hello", vcs.server);
-app2.use("/hello", vcs.uploader);
-app2.use("/hello", vcs.launcher);
+app1.use("/hello", bailudo.server);
+app2.use("/hello", bailudo.launcher);
 
 // Example backend implementation
 app1.get("/api/data", function(req, res) {
