@@ -1,7 +1,7 @@
 {
   "name": "baibulo",
-  "version": "1.0.0",
-  "description": "Baibulo (version in Chewa) - versioned static content manager and server",
+  "version": "1.0.1",
+  "description": "Baibulo (version in Chewa) - versioned static content server and manager",
   "author": "Matthias Hryniszak",
   "license": "Apache-2.0",
   "main": "index.js",
@@ -20,5 +20,9 @@
   "bin": {
     "baibulo-deploy": "./bin/baibulo-deploy",
     "baibulo-version-manager": "./bin/baibulo-version-manager"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/testdriven/bailbulo"
   }
 }
