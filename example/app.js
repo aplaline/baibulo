@@ -9,8 +9,8 @@ var app2     = express();
 app1.use(require('compression')());
 
 // Enable file server and file uploader
-app1.use("/hello", bailudo.server);
-app2.use("/hello", bailudo.launcher);
+app1.use("/hello", baibulo.server);
+app2.use("/hello", baibulo.launcher);
 
 // Example backend implementation
 app1.get("/api/data", function(req, res) {
