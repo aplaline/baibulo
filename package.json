@@ -1,6 +1,6 @@
 {
   "name": "baibulo",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Baibulo (version in Chewa) - versioned static content server and manager",
   "author": "Matthias Hryniszak",
   "license": "Apache-2.0",
@@ -18,8 +18,7 @@
     "http-proxy": "^1.13.2"
   },
   "bin": {
-    "baibulo-deploy": "./bin/baibulo-deploy",
-    "baibulo-version-manager": "./bin/baibulo-version-manager"
+    "baibulo": "./bin/baibulo"
   },
   "repository": {
     "type" : "git",

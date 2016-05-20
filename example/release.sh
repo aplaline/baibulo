@@ -7,4 +7,4 @@ else
   VERSION=$1
 fi
 
-../bin/baibulo-version-manager set --context hello --version $VERSION
+../bin/baibulo set-version --context hello --version $VERSION

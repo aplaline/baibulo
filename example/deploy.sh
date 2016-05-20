@@ -8,4 +8,4 @@ else
 fi
 
 cd hello
-../../bin/baibulo-deploy --version $VERSION
+../../bin/baibulo deploy --version $VERSION
