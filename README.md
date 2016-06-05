@@ -35,13 +35,13 @@ Then you navigate to [http://localhost:3000/hello?version=next](http://localhost
 Every deploy is stored with a different version but if you deploy twice with the same version the previous content is overwritten. This allows to iterate on a future version and once that is complete to switch to the next version like so:
 
 ```
-$ baibulo deploy --version 1
-OK index.html -> content:/hello/index.html:next (text/html)   
-OK css/hello.css -> content:/hello/css/hello.css:next (text/css)   
-OK js/app.js -> content:/hello/js/app.js:next (application/javascript)   
-OK img/logo.png -> content:/hello/img/logo.png:next (image/png)
-$ baibulo set-version --version 1
-OK New default version for context '/hello': 1
+$ baibulo deploy --version 2
+OK index.html -> content:/hello/index.html:2 (text/html)   
+OK css/hello.css -> content:/hello/css/hello.css:2 (text/css)   
+OK js/app.js -> content:/hello/js/app.js:2 (application/javascript)   
+OK img/logo.png -> content:/hello/img/logo.png:2 (image/png)
+$ baibulo set-version --version 2
+OK New default version for context '/hello': 2
 ```
 
 Now you don't need to specify the version anymore so just navigate to [http://localhost:3000/hello](http://localhost:3000/hello) and you're done.
