@@ -1,3 +1,5 @@
+[![npm version](https://img.shields.io/npm/v/baibulo.svg)](https://www.npmjs.com/package/baibulo)
+
 ## Baibulo - versioned static content server and manager
 
 Baibulo (*version* in Chewa) is a versioned static content server and manager package for Node express applications. It is a version of implementation of approach [presented](https://www.youtube.com/watch?v=QZVYP3cPcWQ) on RailsConf 2014 by Luke Melia.
