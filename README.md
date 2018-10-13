@@ -1,83 +1,78 @@
-[![npm version](https://img.shields.io/npm/v/baibulo.svg)](https://www.npmjs.com/package/baibulo)
+# Baibulo - Java implementation
 
-## Baibulo - versioned static content server and manager
+Baibulo (version in Chewa) is a versioned static content server and manager package for Node express applications. It is a version of implementation of approach presented on RailsConf 2014 by Luke Melia.
 
-Baibulo (*version* in Chewa) is a versioned static content server and manager package for Node express applications. It is a version of implementation of approach [presented](https://www.youtube.com/watch?v=QZVYP3cPcWQ) on RailsConf 2014 by Luke Melia.
+## Usage
 
-### Usage
-
-Baibulo uses Redis to store and serve the content and metadata so you need to have it installed before getting started. The easiest way to do it is to run it in a Docker container:
-
-```docker run --name redis -d redis```
-
-After that all you need to do is to mount it in your Express application as middleware on some context (as defined in for example Java web applications which is the first part of the path, for example in http://www.testme.org/hello/index.html the **/hello** is the context).
+The solution comes in the form of an Express middleware. The following is a basic usage example:
 
 ```
-var app = require("express")();
-var baibulo = require("baibulo")();
-
-app.use("/hello", baibulo.server);
-
-app.listen(3000);
+const app = require('express')()
+const baibulo  = require('../')
+app.use(baibulo({ root: '/tmp/baibulo', download: true, upload: true }))
+app.listen(3000)
+console.log("Listening for requests on ports 3000\n");
 ```
 
-To upload stuff to redis you will use the ```baibulo deploy``` command-line utility like so:
+As you can see there are 3 different parameters that can be adjusted:
+
+`root` - the root folder on the filesystem that all versioned files will be stored in
+
+`download` - a flag that enables download of content.
+
+`upload` - a flag that enables uploading of new content. Setting it to `false` (for example in production) disables the upload thus providing a secure way of serving content to the general public. Nothing stands in the way of having additional server running on an internal IP address that would allow for upload. After all this is just file system that is being used as storage.
+
+The middleware mapping determines what will be the root URL for all content.
+
+## Deployment
+
+The deployment can be done either using cURL or with a dedicated utility called `baibulo-deploy` written as a Node.js package. See https://github.com/aplaline/baibulo-deploy for further information about that utility.
+
+For now let's concentrate on how to deploy a single file in a specific version using cURL.
 
 ```
-cd hello
-$ baibulo deploy
-OK index.html -> content:/hello/index.html:next (text/html)   
-OK css/hello.css -> content:/hello/css/hello.css:next (text/css)   
-OK js/app.js -> content:/hello/js/app.js:next (application/javascript)   
-OK img/logo.png -> content:/hello/img/logo.png:next (image/png)
+curl -v -X PUT \
+  --data-binary "@image.png" \
+  -H "Version: TST-1234" \
+  http://localhost:8080/hello/assets/image.png
 ```
 
-Then you navigate to [http://localhost:3000/hello?version=next](http://localhost:3000/hello?version=next) - done
-
-Every deploy is stored with a different version but if you deploy twice with the same version the previous content is overwritten. This allows to iterate on a future version and once that is complete to switch to the next version like so:
+Alternatively to the `Version` header you can use the query string parameter named `version` like so:
 
 ```
-$ baibulo deploy --version 2
-OK index.html -> content:/hello/index.html:2 (text/html)   
-OK css/hello.css -> content:/hello/css/hello.css:2 (text/css)   
-OK js/app.js -> content:/hello/js/app.js:2 (application/javascript)   
-OK img/logo.png -> content:/hello/img/logo.png:2 (image/png)
-$ baibulo set-version --version 2
-OK New default version for context '/hello': 2
+curl -v -X PUT \
+  --data-binary "@image.png" \
+  http://localhost:8080/hello/assets/image.png?version=TST-1234
 ```
 
-Now you don't need to specify the version anymore so just navigate to [http://localhost:3000/hello](http://localhost:3000/hello) and you're done.
+## Specifying version when uploading assets
 
-### Configuration
+When uploading assets Baibulo has a 2 step process that tries to figure out what version should the asset be in:
 
-When instantiating bailbulo you will be able to specify some configuration options:
+1. Query string parameter named `version`
+2. Header `Version`
+
+If none is specified the upload fails.
+
+## Retrieval rules
+
+When retrieving content Baibulo has 4 stages at which it tries to determine the version which should be served:
+
+1. Query string parameter named `version`
+2. Header `Version`
+3. Header `Referrer` and its query string parameter `version`
+4. Cookie `__version`
+
+If none will be found then the version name `release` will be used.
+
+## Storage options
+
+Baibulo stores the content of static assets in folders with the name of the file and underneeth it there are files with the actual version name. For a simple `index.html` in version TST-1234 (mimicing a Jira ticket number) the structure would look like that:
 
 ```
-    redis  - redis client or uri (default: REDIS_URL environment variable or "redis://localhost:6379")
-    prefix - redis key prefix (default: "content:" + context)
-    index  - default file to serve when the path does not contain one (default: 'index.html')
-    root   - alternative prefix for generated links (default: current server, launcher only)
+/
+ /index.html
+   /TST-1234
 ```
 
-### Listing versions
-
-Sometimes you will want to be able to see all the versions as a list. Baibulo has just the right tool for you to do that! Simply mount the ```baibulo.launcher``` on the same context on a different port and you'll be all set.
-
-```
-var express = require("express");
-var app1 = express();
-var app2 = express();
-var baibulo = require("baibulo")({ root: "http://localhost:3000" });
-
-app1.use("/hello", baibulo.server);
-app2.use("/hello", baibulo.launcher);
-
-app1.listen(3000);
-app2.listen(3001);
-```
-
-Now navigate to [http://localhost:3001/hello](http://localhost:3001/hello) and you'll see all your versions listed with links for easy navigation.
-
-### Example
-
-There is a fully implemented [example](https://github.com/testdriven/baibulo/tree/master/example) that you might want to try out in the repository.
+In the future there will be options to store the assets in other storages, such as SQL and NoSQL databases, maybe even in S3 or other cloud storages.
