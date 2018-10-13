@@ -1,9 +1,19 @@
-var server = require("./lib/versioned-content-server");
-var launcher = require("./lib/versioned-content-launcher");
+const StaticContentRetriever = require('./lib/StaticContentRetriever')
+const StaticContentUploader = require('./lib/StaticContentUploader')
 
-module.exports = function(options) {
-  return {
-    server: server.init(options),
-    launcher: launcher.init(options)
+function baibulo({ root = '/tmp/baibulo', download = true, upload = true } = {}) {
+  const retriever = new StaticContentRetriever()
+  const uploader = new StaticContentUploader(root)
+
+  return (request, response, next) => {
+    if (download && request.method === 'GET') {
+      retriever.retrieve(request, response).catch(next)
+    } else if (upload && request.method === 'PUT' || request.method === 'POST') {
+      uploader.upload(request, response).catch(next)
+    } else {
+      next()
+    }
   }
 }
+
+module.exports = baibulo

@@ -6,13 +6,15 @@
   "license": "Apache-2.0",
   "main": "index.js",
   "dependencies": {
-    "mime": "^1.3.4",
+    "mime": "^2.3.1",
     "minimist": "^1.2.0",
+    "mkdirp": "^0.5.1",
     "node-dir": "^0.1.12",
     "redis": "^2.6.0-0",
     "redis-streams": "^1.0.6"
   },
   "devDependencies": {
+    "body-parser": "^1.18.3",
     "compression": "^1.6.1",
     "express": "^4.13.4",
     "http-proxy": "^1.13.2"
@@ -21,7 +23,7 @@
     "baibulo": "./bin/baibulo"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/aplalineb/aibulo"
+    "type": "git",
+    "url": "https://github.com/aplalineb/aibulo"
   }
 }

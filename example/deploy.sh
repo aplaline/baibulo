@@ -7,5 +7,4 @@ else
   VERSION=$1
 fi
 
-cd hello
-../../bin/baibulo deploy --version $VERSION
+npx baibulo-deploy deploy --url http://localhost:3000 --version $VERSION --dir hello
