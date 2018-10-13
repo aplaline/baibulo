@@ -2,6 +2,7 @@
 
 const app = require('express')()
 const baibulo  = require('../')
+
 app.use(baibulo({ root: '/tmp/baibulo', download: true, upload: true }))
 
 app.get('/data', (req, res) => {
