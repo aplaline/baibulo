@@ -1,4 +1,4 @@
-# Baibulo - Java implementation
+# Baibulo - Node.js implementation
 
 Baibulo (version in Chewa) is a versioned static content server and manager package for Node express applications. It is a version of implementation of approach presented on RailsConf 2014 by Luke Melia.
 

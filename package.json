@@ -1,6 +1,6 @@
 {
   "name": "baibulo",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Baibulo (version in Chewa) - versioned static content server and manager",
   "author": "Matthias Hryniszak",
   "license": "Apache-2.0",
