@@ -8,10 +8,15 @@ The solution comes in the form of an Express middleware. The following is a basi
 
 ```
 const app = require('express')()
+const cookieParser = require('cookie-parser')
 const baibulo  = require('../')
+
+app.use(cookieParser())
 app.use(baibulo({ root: '/tmp/baibulo', download: true, upload: true }))
-app.listen(3000)
-console.log("Listening for requests on ports 3000\n");
+
+app.listen(3000, () => {
+  console.log("Listening for requests on ports 3000\n");
+})
 ```
 
 As you can see there are 3 different parameters that can be adjusted:
