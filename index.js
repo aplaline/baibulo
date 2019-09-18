@@ -2,7 +2,7 @@ const StaticContentRetriever = require('./lib/StaticContentRetriever')
 const StaticContentUploader = require('./lib/StaticContentUploader')
 
 function baibulo({ root = '/tmp/baibulo', download = true, upload = true } = {}) {
-  const retriever = new StaticContentRetriever()
+  const retriever = new StaticContentRetriever(root)
   const uploader = new StaticContentUploader(root)
 
   return (request, response, next) => {
